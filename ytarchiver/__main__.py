@@ -38,18 +38,24 @@ def start_listening(config, logger):
     ensure_dir_exist(config.output_dir, logger)
     verify_channels_list_not_empty(config, logger)
 
-    service = create_service(config)
+    service = create_service(config, logger)
 
     logger.debug('daemon started successfully')
 
+    _trigger_lookup(config, logger, service, first_run=True)
+
     try:
         while True:
-            now = datetime.now()
-            logger.debug('[{}] triggering new lookup...'.format(now.strftime('%d/%m/%Y %H:%M:%S')))
-            lookup(config, logger, service)
             time.sleep(config.refresh_time)
+            _trigger_lookup(config, logger, service)
     except KeyboardInterrupt:
         logger.debug('interrupted with ctrl+c')
+
+
+def _trigger_lookup(config, logger, service, first_run=False):
+    now = datetime.now()
+    logger.debug('[{}] triggering new lookup...'.format(now.strftime('%Y-%m-%d %H:%M:%S')))
+    lookup(config, logger, service, first_run)
 
 
 def ensure_dir_exist(path, logger):
