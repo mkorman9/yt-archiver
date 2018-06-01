@@ -1,5 +1,7 @@
 import os
 from pytube import YouTube
+from pytube.helpers import safe_filename
+
 
 VIDEO_DOWNLOAD_PREFIX = 'https://www.youtube.com/watch?v='
 
@@ -20,7 +22,7 @@ def download(config, logger, entry):
     streams = yt.streams.all()
     stream = _choose_best_stream(streams)
     total_size = stream.filesize
-    filename = entry.timestamp + ' ' + entry.title
+    filename = safe_filename(entry.timestamp + ' ' + entry.title)
 
     logger.info('downloading "{}"'.format(entry.title))
     stream.download(
@@ -38,6 +40,12 @@ def _choose_best_stream(streams):
             if best_stream is None:
                 best_stream = stream
 
-            if 'mp4' in stream.mime_type and 'mp4' not in best_stream.mime_type:
+            higher_resolution = stream.resolution > best_stream.resolution
+            equal_resolution = stream.resolution == best_stream.resolution
+            better_format = 'mp4' in stream.mime_type and 'mp4' not in best_stream.mime_type
+            if better_format and (equal_resolution or higher_resolution):
                 best_stream = stream
+            if higher_resolution:
+                best_stream = stream
+
     return best_stream

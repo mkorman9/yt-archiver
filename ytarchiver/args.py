@@ -24,7 +24,7 @@ def parse_command_line():
     parser.add_argument(
         '-o', '--output',
         dest='output_dir',
-        help='directory to store videos, credentials and the database, default: ' + DEFAULT_OUTPUT_DIRECTORY,
+        help='directory to store videos and the database, default: ' + DEFAULT_OUTPUT_DIRECTORY,
         default=DEFAULT_OUTPUT_DIRECTORY,
         type=str
     )
