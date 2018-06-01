@@ -18,16 +18,11 @@ In the navigation bar there will be an URL in format: ```https://www.youtube.com
 visible in place of  ```<ID>``` will indicate the unique identifier of the channel. Copy it.
 
 ### Steps
-1. Clone repository to appropriate location and cd into it:
+1. Install command line tool:
     ```
-    git clone git@github.com:mkorman9/yt-archiver.git
-    cd yt-archiver
+    pip3 install yt-archiver
     ```
-2. Install required dependencies (you could consider creating a separated virtualenv before):
-    ```
-    pip3 install -e .
-    ```
-3. Start monitoring with:
+2. Start monitoring with:
     ```
     ytarchiver -k <YOUR_API_KEY> -m <CHANNELS_ID>
     ```
