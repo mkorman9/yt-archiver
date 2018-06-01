@@ -29,10 +29,11 @@ visible in place of  ```<ID>``` will indicate the unique identifier of the chann
     ```
 3. Start monitoring with:
     ```
-    python3 ytarchiver -k <YOUR_API_KEY> -m <CHANNELS_ID>
+    ytarchiver -k <YOUR_API_KEY> -m <CHANNELS_ID>
     ```
     Of course replace ```<YOUR_API_KEY>``` with your personal YouTube API key and ```<CHANNELS_ID>``` with identifiers of
-    channels that you would like to monitor. Multiple identifiers could be specified after space.
+    channels that you would like to monitor. Multiple identifiers could be specified after space. ```ytarchiver```
+    command is installed globally, so you can invoke it from any directory.
 
 Now application should automatically download any new video. By default videos are stored in ```out``` folder. 
 
@@ -42,20 +43,20 @@ Now application should automatically download any new video. By default videos a
 By default yt-archiver saves all downloaded videos to ```out``` directory, in application's folder.
 ```-o``` option allows to change it.
 ```
-python3 ytarchiver -k <YOUR_API_KEY> -m <CHANNELS_ID> -o <CUSTOM_OUTPUT_DIRECTORY>
+ytarchiver -k <YOUR_API_KEY> -m <CHANNELS_ID> -o <CUSTOM_OUTPUT_DIRECTORY>
 ```
 
 #### Downloading historical data
 By default yt-archiver only downloads videos published after it is started. To download all videos from the past specify
 ```-a``` option.
 ```
-python3 ytarchiver -k <YOUR_API_KEY> -m <CHANNELS_ID> -a
+ytarchiver -k <YOUR_API_KEY> -m <CHANNELS_ID> -a
 ```
 **WARNING:** downloading all videos from channel might take a lot of time and consume a lot of disk space
 
 #### Changing refresh time
 Default delay between consecutive requests for new videos is 5 minutes. It might be changed with ```-t``` option.
 ```
-python3 ytarchiver -k <YOUR_API_KEY> -m <CHANNELS_ID> -t 60
+ytarchiver -k <YOUR_API_KEY> -m <CHANNELS_ID> -t 60
 ```
 ```-t``` expects time in seconds. Command above will fetch channels every 1 minute.

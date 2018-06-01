@@ -8,5 +8,10 @@ setup(
     author='Michal Korman',
     author_email='michal.korman@icloud.com',
     packages=find_packages(),
-    install_requires=['pytube', 'google-api-python-client']
+    install_requires=['pytube', 'google-api-python-client'],
+    entry_points={
+        'console_scripts': [
+            'ytarchiver = ytarchiver.main:main'
+        ]
+    }
 )
