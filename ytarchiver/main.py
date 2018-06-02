@@ -1,24 +1,26 @@
-import logging
-import sys
-import os
 import errno
+import logging
+import os
+import sys
 import time
-
 from datetime import datetime
 
 from ytarchiver.args import parse_command_line
-from ytarchiver.lookup import create_service, lookup
-from ytarchiver.storage import get_saved_entries
+from ytarchiver.api import prepare_context
+from ytarchiver.common import Context
+from ytarchiver.lookup import lookup
+from ytarchiver.storage import get_saved_videos
 
 
 def main():
     config = parse_command_line()
     logger = create_logger()
+    context = Context(config, logger)
 
     if config.do_list:
-        list_entries(config, logger)
+        list_videos(context)
     else:
-        start_listening(config, logger)
+        start_listening(context)
 
 
 def create_logger():
@@ -28,34 +30,36 @@ def create_logger():
     return logger
 
 
-def list_entries(config, logger):
-    logger.info('Video ID\tChannel ID\tTimestamp\tTitle\tChannel Name\tFilename')
-    for entry in get_saved_entries(config, logger):
-        logger.info(entry)
+def list_videos(context):
+    context.logger.info('Video ID\tChannel ID\tTimestamp\tTitle\tChannel Name\tFilename')
+    for entry in get_saved_videos(context):
+        context.logger.info(entry)
 
 
-def start_listening(config, logger):
-    ensure_dir_exist(config.output_dir, logger)
-    verify_channels_list_not_empty(config, logger)
+def start_listening(context):
+    ensure_dir_exist(context.config.output_dir, context.logger)
+    if len(context.config.channels_list) == 0:
+        context.logger.error('channels list cannot be empty, use -m option to specify at least one channel id')
+        sys.exit(1)
 
-    service = create_service(config, logger)
+    prepare_context(context)
 
-    logger.debug('daemon started successfully')
-
-    _trigger_lookup(config, logger, service, first_run=True)
+    context.logger.debug('daemon started successfully')
 
     try:
+        _trigger_lookup(context, first_run=True)
+
         while True:
-            time.sleep(config.refresh_time)
-            _trigger_lookup(config, logger, service)
+            time.sleep(context.config.refresh_time)
+            _trigger_lookup(context)
     except KeyboardInterrupt:
-        logger.debug('interrupted with ctrl+c')
+        context.logger.debug('interrupted with ctrl+c')
 
 
-def _trigger_lookup(config, logger, service, first_run=False):
+def _trigger_lookup(context, first_run=False):
     now = datetime.now()
-    logger.debug('[{}] triggering new lookup...'.format(now.strftime('%Y-%m-%d %H:%M:%S')))
-    lookup(config, logger, service, first_run)
+    context.logger.debug('[{}] triggering new lookup...'.format(now.strftime('%Y-%m-%d %H:%M:%S')))
+    lookup(context, first_run)
 
 
 def ensure_dir_exist(path, logger):
@@ -67,12 +71,6 @@ def ensure_dir_exist(path, logger):
         else:
             logger.error(e)
             sys.exit(1)
-
-
-def verify_channels_list_not_empty(config, logger):
-    if len(config.channels_list) == 0:
-        logger.error('channels list cannot be empty, use -m option to specify at least one channel id')
-        sys.exit(1)
 
 
 if __name__ == '__main__':
