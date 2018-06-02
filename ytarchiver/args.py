@@ -3,6 +3,7 @@ import argparse
 DEFAULT_REFRESH_TIME_SEC = 5 * 60  # 5 min
 DEFAULT_OUTPUT_DIRECTORY = './out'
 DEFAULT_ARCHIVE_ALL = False
+DEFAULT_MONITOR_LIVESTREAMS = False
 
 
 def parse_command_line():
@@ -33,6 +34,13 @@ def parse_command_line():
         dest='archive_all',
         help='archive all videos from past, default action is to save only new videos',
         default=DEFAULT_ARCHIVE_ALL,
+        action='store_true'
+    )
+    parser.add_argument(
+        '-s', '--streams',
+        dest='monitor_livestreams',
+        help='also monitor active livestreams and record all of them',
+        default=DEFAULT_MONITOR_LIVESTREAMS,
         action='store_true'
     )
     parser.add_argument(

@@ -1,4 +1,4 @@
-from typing import Iterator
+from typing import Iterator, Optional
 
 from googleapiclient.discovery import build
 
@@ -8,7 +8,7 @@ YOUTUBE_API_SERVICE_NAME = "youtube"
 YOUTUBE_API_VERSION = "v3"
 
 
-def prepare_context(context: 'Context'):
+def prepare_context(context: Context):
     context.service = build(
         YOUTUBE_API_SERVICE_NAME,
         YOUTUBE_API_VERSION,
@@ -17,7 +17,7 @@ def prepare_context(context: 'Context'):
     )
 
 
-def fetch_channel_livestream(context: 'Context', channel_id: str) -> bool:
+def fetch_channel_livestream(context: Context, channel_id: str) -> Optional[Video]:
     live_streams = context.service.search().list(
         part="id,snippet",
         channelId=channel_id,
@@ -26,17 +26,18 @@ def fetch_channel_livestream(context: 'Context', channel_id: str) -> bool:
     ).execute()
 
     for stream in live_streams['items']:
-        video_id = stream['id']['videoId']
-        timestamp = stream['snippet']['publishedAt']
-        title = stream['snippet']['title']
+        return Video(
+            video_id=stream['id']['videoId'],
+            channel_id=channel_id,
+            timestamp=stream['snippet']['publishedAt'],
+            title=stream['snippet']['title'],
+            channel_name=stream['snippet']['channelTitle']
+        )
 
-        # TODO
-        return True
-
-    return False
+    return None
 
 
-def find_channel_uploaded_videos(context: 'Context', channel_id: str) -> Iterator[Video]:
+def find_channel_uploaded_videos(context: Context, channel_id: str) -> Iterator[Video]:
     results = context.service.channels().list(
         part="snippet,contentDetails",
         id=channel_id

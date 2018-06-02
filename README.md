@@ -1,6 +1,6 @@
 # yt-archiver
-yt-archiver offers automatic backup for YouTube videos. All you need to do is to choose channels to follow and leave it
-running 24/7. It will automatically download any new video. Copies will be accessible even if original video or
+yt-archiver offers automatic backup for YouTube videos and livestreams. All you need to do is to choose channels to follow and leave it
+running 24/7. It will automatically download any new content. Copies will be accessible even if original video or
 associated channel would become unavailable.
 
 *Nothing gets deleted from the Internet*
@@ -34,6 +34,13 @@ Now application should automatically download any new video. By default videos a
 
 
 ### Custom options
+#### Record livestreams
+yt-archiver offers an option to automatically record any livestream started on monitored channels.
+All you need to do is to add ```-s``` option.
+```
+ytarchiver -k <YOUR_API_KEY> -m <CHANNELS_ID> -s
+```
+
 #### Changing output directory
 By default yt-archiver saves all downloaded videos to ```out``` directory, in application's folder.
 ```-o``` option allows to change it.

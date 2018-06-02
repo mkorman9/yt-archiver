@@ -29,6 +29,12 @@ class Storage:
         for columns in cur.fetchall():
             yield Video(*columns)
 
+    def list_livestreams(self) -> Iterator[Video]:
+        cur = self.connection.cursor()
+        cur.execute('SELECT video_id, channel_id, timestamp, title, channel_name, filename FROM LIVESTREAMS')
+        for columns in cur.fetchall():
+            yield Video(*columns)
+
     def video_exist(self, video_id: str):
         cur = self.connection.cursor()
         cur.execute('SELECT 1 FROM VIDEOS WHERE video_id=?', (video_id,))
@@ -42,6 +48,15 @@ class Storage:
             (entry.video_id, entry.channel_id, entry.timestamp, entry.title, entry.channel_name, entry.filename)
         )
 
+    def add_livestream(self, entry: 'Video'):
+        cur = self.connection.cursor()
+        cur.execute(
+            'INSERT INTO LIVESTREAMS(video_id, channel_id, timestamp, title, channel_name, filename) '
+            'VALUES (?, ?, ?, ?, ?, ?)',
+            (entry.video_id, entry.channel_id, entry.timestamp, entry.title, entry.channel_name, entry.filename)
+        )
+        self.commit()
+
     def commit(self):
         self.connection.commit()
 
@@ -50,6 +65,17 @@ class Storage:
         cur.execute(
             'CREATE TABLE VIDEOS('
             'video_id VARCHAR(16) PRIMARY KEY, '
+            'channel_id VARCHAR(32), '
+            'timestamp DATETIME, '
+            'title TEXT, '
+            'channel_name TEXT, '
+            'filename TEXT'
+            ')'
+        )
+        cur.execute(
+            'CREATE TABLE LIVESTREAMS('
+            'id INTEGER PRIMARY KEY AUTOINCREMENT,'
+            'video_id VARCHAR(16), '
             'channel_id VARCHAR(32), '
             'timestamp DATETIME, '
             'title TEXT, '
@@ -67,11 +93,11 @@ def open_storage(directory: str, initialise: bool=True) -> Storage:
     s.close()
 
 
-def get_saved_videos(context: Context) -> List[Video]:
+def get_saved_content(context: Context) -> List[Video]:
     storage_path = os.path.join(context.config.output_dir, STORAGE_FILE)
     if not os.path.isfile(storage_path):
         context.logger.warning('storage file does not exist: ' + storage_path)
         return []
 
     with open_storage(context.config.output_dir, initialise=False) as s:
-        return list(s.list_videos())
+        return list(s.list_videos()) + list(s.list_livestreams())

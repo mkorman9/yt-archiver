@@ -1,16 +1,42 @@
 import os
+import logging
+
+import streamlink
 from pytube import YouTube
 from pytube.helpers import safe_filename
 
+from ytarchiver.common import Video, Context
 
 YOUTUBE_URL_PREFIX = 'https://www.youtube.com/watch?v='
+SUPPORTED_LIVESTREAM_RESOLUTIONS = ['720p', '480p', '360p', '240p', '144p']
+LIVESTREAM_CHUNK_SIZE = 8192
 
 
-def download_stream(config, logger):
-    pass
+def record_livestream(livestream: Video, logger: logging.Logger):
+    url = YOUTUBE_URL_PREFIX + livestream.video_id
+    available_streams = streamlink.api.streams(url)
+
+    best_resolution = ''
+    for resolution in SUPPORTED_LIVESTREAM_RESOLUTIONS:
+        if resolution in available_streams:
+            best_resolution = resolution
+            break
+    if best_resolution == '':
+        logger.error('no supported resolution found for "{}"'.format(livestream.title))
+        return
+
+    stream = available_streams[best_resolution]
+
+    logging.error('recording {}:{} stream of "{}"'.format(stream.shortname(), best_resolution, livestream.title))
+    with open(livestream.filename, 'wb') as out:
+        with stream.open() as handle:
+            while True:
+                buffer = handle.read(LIVESTREAM_CHUNK_SIZE)
+                out.write(buffer)
+                out.flush()
 
 
-def download_video(context, video):
+def download_video(context: Context, video: Video):
     download_link = YOUTUBE_URL_PREFIX + video.video_id
     total_size = 0
 

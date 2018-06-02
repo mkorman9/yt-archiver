@@ -1,11 +1,6 @@
+import logging
+from abc import ABCMeta, abstractmethod
 from datetime import datetime
-
-
-class Context:
-    def __init__(self, config, logger):
-        self.config = config
-        self.logger = logger
-        self.service = None
 
 
 class Video:
@@ -37,3 +32,28 @@ class Video:
         return self.__str__()
 
 
+class Recordings(metaclass=ABCMeta):
+    @abstractmethod
+    def update(self, logger: logging.Logger):
+        pass
+
+    @abstractmethod
+    def is_recording_active(self, recording_id: str) -> bool:
+        pass
+
+    @abstractmethod
+    def create_recording(self, stream: Video, logger: logging.Logger):
+        pass
+
+
+class RecorderMessage:
+    def __init__(self, recorder_to_shutdown: str):
+        self.recorder_to_shutdown = recorder_to_shutdown
+
+
+class Context:
+    def __init__(self, config, logger: logging.Logger, recordings_controller: Recordings):
+        self.config = config
+        self.logger = logger
+        self.service = None
+        self.recordings = recordings_controller

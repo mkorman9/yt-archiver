@@ -10,7 +10,7 @@ with open('LICENSE.txt') as f:
 
 setup(
     name='yt-archiver',
-    version='0.2.0',
+    version='0.3.0',
     description='Daemon for monitoring YouTube channels for new videos. Offers automatic backup of uploaded content',
     long_description=readme,
     license=license,
@@ -35,5 +35,5 @@ setup(
             'ytarchiver = ytarchiver.main:main'
         ]
     },
-    install_requires=['pytube', 'google-api-python-client'],
+    install_requires=['pytube', 'streamlink', 'google-api-python-client'],
 )
