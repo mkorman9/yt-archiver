@@ -1,5 +1,7 @@
 .idea/*
 *.pyc
 out/*
+dist/*
+*.egg-info
 .DS_Store
 desktop.ini

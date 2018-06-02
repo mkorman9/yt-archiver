@@ -48,7 +48,12 @@ def lookup(config, logger, service, first_run):
                             s.commit()
                         new_videos += 1
                     total_videos += 1
+            except ConnectionError as e:
+                logger.error('connection to API has failed, skipping lookup')
+                logger.error(e)
+                return
             except HttpError as e:
+                logger.error('API call has failed, skipping lookup')
                 logger.error(e)
                 return
             finally:
