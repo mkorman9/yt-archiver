@@ -10,7 +10,7 @@ with open('LICENSE.txt') as f:
 
 setup(
     name='yt-archiver',
-    version='0.1.0',
+    version='0.2.0',
     description='Daemon for monitoring YouTube channels for new videos. Offers automatic backup of uploaded content',
     long_description=readme,
     license=license,
