@@ -52,7 +52,7 @@ def download_video(context: Context, video: Video):
     streams = yt.streams.all()
     stream = _choose_best_stream(streams)
     total_size = stream.filesize
-    filename = safe_filename(video.timestamp + ' ' + video.title)
+    filename = _sanitize_filename(video.timestamp + ' ' + video.title)
 
     context.logger.info('downloading "{}"'.format(video.title))
     stream.download(
@@ -79,3 +79,9 @@ def _choose_best_stream(streams):
                 best_stream = stream
 
     return best_stream
+
+
+def _sanitize_filename(filename):
+    filename = safe_filename(filename)
+    filename = filename.replace(' ', '_')
+    return filename.encode('1252', 'ignore').decode('1252')

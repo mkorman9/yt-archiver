@@ -1,12 +1,11 @@
+import os
 from datetime import datetime
 
-import os
 from googleapiclient.errors import HttpError
-from pytube.helpers import safe_filename
 
 from ytarchiver.api import find_channel_uploaded_videos, fetch_channel_livestream
 from ytarchiver.common import Context, Video
-from ytarchiver.download import download_video
+from ytarchiver.download import download_video, _sanitize_filename
 from ytarchiver.storage import open_storage, Storage
 
 
@@ -98,5 +97,5 @@ def _register_video(context: Context, storage: Storage, video: Video, is_first_r
 
 def _generate_livestream_filename(context: Context, livestream: Video):
     now = datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')
-    filename = '{} {}.{}'.format(now, safe_filename(livestream.title), 'ts')
+    filename = '{} {}.{}'.format(now, _sanitize_filename(livestream.title), 'ts')
     return os.path.join(context.config.output_dir, filename)
