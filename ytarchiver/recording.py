@@ -22,7 +22,11 @@ class MultiprocessRecordingsController(Recordings):
     def create_recording(self, stream: Video, logger: logging.Logger):
         self.active_recordings[stream.video_id] = True  # replace boolean with any other information about recording
 
-        process = Process(target=_recorder_task, args=(stream, self.recorders_queue, logger))
+        process = Process(
+            name='ytarchiver-recorder',
+            target=_recorder_task,
+            args=(stream, self.recorders_queue, logger)
+        )
         process.start()
 
 

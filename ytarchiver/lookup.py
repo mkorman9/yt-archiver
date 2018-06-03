@@ -97,5 +97,5 @@ def _register_video(context: Context, storage: Storage, video: Video, is_first_r
 
 def _generate_livestream_filename(context: Context, livestream: Video):
     now = datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')
-    filename = '{} {}.{}'.format(now, _sanitize_filename(livestream.title), 'ts')
+    filename = '{}_{}.{}'.format(now, _sanitize_filename(livestream.title), 'ts')
     return os.path.join(context.config.output_dir, filename)
