@@ -84,4 +84,4 @@ def _choose_best_stream(streams):
 def _sanitize_filename(filename):
     filename = safe_filename(filename)
     filename = filename.replace(' ', '_')
-    return filename.encode('ascii', 'ignore')
+    return filename.encode('ascii', 'ignore').decode('ascii')
