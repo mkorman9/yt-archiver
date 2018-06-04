@@ -3,7 +3,7 @@ import sqlite3
 from contextlib import contextmanager
 from typing import Iterator, List
 
-from ytarchiver.common import Video, Context
+from ytarchiver.common import ContentItem, Context
 
 STORAGE_FILE = 'storage.sqlite'
 
@@ -23,24 +23,24 @@ class Storage:
         self.connection.commit()
         self.connection.close()
 
-    def list_videos(self) -> Iterator[Video]:
+    def list_videos(self) -> Iterator[ContentItem]:
         cur = self.connection.cursor()
         cur.execute('SELECT video_id, channel_id, timestamp, title, channel_name, filename FROM VIDEOS')
         for columns in cur.fetchall():
-            yield Video(*columns)
+            yield ContentItem(*columns)
 
-    def list_livestreams(self) -> Iterator[Video]:
+    def list_livestreams(self) -> Iterator[ContentItem]:
         cur = self.connection.cursor()
         cur.execute('SELECT video_id, channel_id, timestamp, title, channel_name, filename FROM LIVESTREAMS')
         for columns in cur.fetchall():
-            yield Video(*columns)
+            yield ContentItem(*columns)
 
     def video_exist(self, video_id: str):
         cur = self.connection.cursor()
         cur.execute('SELECT 1 FROM VIDEOS WHERE video_id=?', (video_id,))
         return len(list(cur.fetchall())) > 0
 
-    def add_video(self, entry: 'Video'):
+    def add_video(self, entry: 'ContentItem'):
         cur = self.connection.cursor()
         cur.execute(
             'INSERT INTO VIDEOS(video_id, channel_id, timestamp, title, channel_name, filename) '
@@ -48,7 +48,7 @@ class Storage:
             (entry.video_id, entry.channel_id, entry.timestamp, entry.title, entry.channel_name, entry.filename)
         )
 
-    def add_livestream(self, entry: 'Video'):
+    def add_livestream(self, entry: 'ContentItem'):
         cur = self.connection.cursor()
         cur.execute(
             'INSERT INTO LIVESTREAMS(video_id, channel_id, timestamp, title, channel_name, filename) '
@@ -93,7 +93,7 @@ def open_storage(directory: str, initialise: bool=True) -> Storage:
     s.close()
 
 
-def get_saved_content(context: Context) -> List[Video]:
+def get_saved_content(context: Context) -> List[ContentItem]:
     storage_path = os.path.join(context.config.output_dir, STORAGE_FILE)
     if not os.path.isfile(storage_path):
         context.logger.warning('storage file does not exist: ' + storage_path)

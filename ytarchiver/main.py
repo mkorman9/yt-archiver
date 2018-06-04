@@ -9,14 +9,19 @@ from ytarchiver.args import parse_command_line
 from ytarchiver.api import prepare_context
 from ytarchiver.common import Context
 from ytarchiver.lookup import lookup
-from ytarchiver.recording import MultiprocessRecordingsController
+from ytarchiver.recording import MultiprocessLivestreamRecordersController, SynchronousVideoRecordersController
 from ytarchiver.storage import get_saved_content
 
 
 def main():
     config = parse_command_line()
     logger = create_logger()
-    context = Context(config, logger, recordings_controller=MultiprocessRecordingsController())
+    context = Context(
+        config,
+        logger,
+        video_recorders_controller=SynchronousVideoRecordersController(),
+        livestream_recorders_controller=MultiprocessLivestreamRecordersController()
+    )
 
     if config.do_list:
         list_videos(context)
@@ -51,6 +56,7 @@ def start_listening(context: Context):
     try:
         _trigger_lookup(context, first_run=True)
 
+        # master thread's loop
         while True:
             time.sleep(context.config.refresh_time)
             _trigger_lookup(context)

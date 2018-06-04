@@ -1,12 +1,10 @@
 import logging
-import os
-from datetime import datetime
 
 from googleapiclient.errors import HttpError
 
 from ytarchiver.api import find_channel_uploaded_videos, fetch_channel_livestream
-from ytarchiver.common import Context, Video
-from ytarchiver.download import download_video, _sanitize_filename
+from ytarchiver.common import Context
+from ytarchiver.download import generate_livestream_filename, generate_video_filename
 from ytarchiver.storage import open_storage, Storage
 
 
@@ -28,7 +26,7 @@ class Statistics:
 
     def announce(self, logger: logging.Logger):
         logger.info(
-            '{} videos: {}, new: {}, active livestreams {}'.format(
+            '{} videos: {}, new: {}, active livestreams: {}'.format(
                 'total' if self.is_first_run else 'fetched',
                 self.total_videos,
                 self.new_videos,
@@ -43,7 +41,8 @@ def lookup(context: Context, is_first_run: bool):
         monitor_livestreams=context.config.monitor_livestreams
     )
 
-    context.recordings.update(context.logger)
+    context.livestream_recorders.update(context)
+    context.video_recorders.update(context)
 
     with open_storage(context.config.output_dir) as storage:
         for channel_id in context.config.channels_list:
@@ -74,38 +73,22 @@ def _check_for_livestreams(context: Context, channel_id: str, statistics: Statis
 
     livestream = fetch_channel_livestream(context, channel_id)
     if livestream is not None:
-        if not context.recordings.is_recording_active(livestream.video_id):
-            livestream.filename = _generate_livestream_filename(context, livestream)
+        if not context.livestream_recorders.is_recording_active(livestream.video_id):
+            livestream.filename = generate_livestream_filename(context.config.output_dir, livestream)
             context.logger.info('new livestream "{}"'.format(livestream.title))
-            context.recordings.create_recording(livestream, context.logger)
+            context.livestream_recorders.start_recording(context, livestream)
             storage.add_livestream(livestream)
         statistics.notify_active_livestream()
 
 
 def _check_for_videos(context: Context, channel_id: str, is_first_run: bool, statistics: Statistics, storage: Storage):
     for video in find_channel_uploaded_videos(context, channel_id, is_first_run):
-        video_not_registered = not storage.video_exist(video.video_id)
+        video_not_registered = not storage.video_exist(video.video_id) and \
+                               not context.video_recorders.is_recording_active(video.video_id)
         if video_not_registered:
-            _register_video(context, storage, video, is_first_run)
+            video.filename = generate_video_filename(context.config.output_dir, video)
+            context.logger.info('new video "{}"'.format(video.title))
+            if not is_first_run or context.config.archive_all:
+                context.video_recorders.start_recording(context, video)
+            storage.add_video(video)
         statistics.notify_video(new=video_not_registered)
-
-
-def _register_video(context: Context, storage: Storage, video: Video, is_first_run: bool=False):
-    should_be_downloaded = not is_first_run or context.config.archive_all
-
-    context.logger.info('new video "{}"'.format(video.title))
-
-    if should_be_downloaded:
-        file_path = download_video(context, video)
-        video.filename = file_path
-
-    storage.add_video(video)
-
-    if should_be_downloaded:
-        storage.commit()
-
-
-def _generate_livestream_filename(context: Context, livestream: Video):
-    now = datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')
-    filename = '{}_{}.{}'.format(now, _sanitize_filename(livestream.title), 'ts')
-    return os.path.join(context.config.output_dir, filename)

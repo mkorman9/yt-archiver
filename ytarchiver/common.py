@@ -3,7 +3,11 @@ from abc import ABCMeta, abstractmethod
 from datetime import datetime
 
 
-class Video:
+class ContentItem:
+    """
+    Represents either a video or a livestream
+    """
+
     def __init__(self,
                  video_id: str,
                  channel_id: str,
@@ -32,9 +36,13 @@ class Video:
         return self.__str__()
 
 
-class Recordings(metaclass=ABCMeta):
+class RecordersController(metaclass=ABCMeta):
+    """
+    Abstraction used to schedule and control recordings of various types of content
+    """
+
     @abstractmethod
-    def update(self, logger: logging.Logger):
+    def update(self, context):
         pass
 
     @abstractmethod
@@ -42,18 +50,17 @@ class Recordings(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def create_recording(self, stream: Video, logger: logging.Logger):
+    def start_recording(self, context, item: ContentItem):
         pass
 
 
-class RecorderMessage:
-    def __init__(self, recorder_to_shutdown: str):
-        self.recorder_to_shutdown = recorder_to_shutdown
-
-
 class Context:
-    def __init__(self, config, logger: logging.Logger, recordings_controller: Recordings):
+    def __init__(self,
+                 config, logger: logging.Logger,
+                 video_recorders_controller: RecordersController,
+                 livestream_recorders_controller: RecordersController):
         self.config = config
         self.logger = logger
         self.service = None
-        self.recordings = recordings_controller
+        self.video_recorders = video_recorders_controller
+        self.livestream_recorders = livestream_recorders_controller
