@@ -1,3 +1,4 @@
+import logging
 import os
 from datetime import datetime
 
@@ -10,7 +11,9 @@ from ytarchiver.storage import open_storage, Storage
 
 
 class Statistics:
-    def __init__(self):
+    def __init__(self, is_first_run: bool, monitor_livestreams: bool):
+        self.is_first_run = is_first_run
+        self.monitor_livestreams = monitor_livestreams
         self.total_videos = 0
         self.new_videos = 0
         self.active_livestreams = 0
@@ -23,9 +26,22 @@ class Statistics:
     def notify_active_livestream(self):
         self.active_livestreams += 1
 
+    def announce(self, logger: logging.Logger):
+        logger.info(
+            '{} videos: {}, new: {}, active livestreams {}'.format(
+                'total' if self.is_first_run else 'fetched',
+                self.total_videos,
+                self.new_videos,
+                self.active_livestreams if self.monitor_livestreams else 'N/A'
+            )
+        )
+
 
 def lookup(context: Context, is_first_run: bool):
-    statistics = Statistics()
+    statistics = Statistics(
+        is_first_run=is_first_run,
+        monitor_livestreams=context.config.monitor_livestreams
+    )
 
     context.recordings.update(context.logger)
 
@@ -33,13 +49,7 @@ def lookup(context: Context, is_first_run: bool):
         for channel_id in context.config.channels_list:
             _fetch_channel_content(context, channel_id, storage, statistics, is_first_run)
 
-    context.logger.info(
-        'total videos: {}, new: {}, active livestreams {}'.format(
-            statistics.total_videos,
-            statistics.new_videos,
-            statistics.active_livestreams if context.config.monitor_livestreams else 'N/A'
-        )
-    )
+    statistics.announce(context.logger)
 
 
 def _fetch_channel_content(context: Context, channel_id: str, storage: Storage, statistics, is_first_run: bool=False):
@@ -73,7 +83,7 @@ def _check_for_livestreams(context: Context, channel_id: str, statistics: Statis
 
 
 def _check_for_videos(context: Context, channel_id: str, is_first_run: bool, statistics: Statistics, storage: Storage):
-    for video in find_channel_uploaded_videos(context, channel_id):
+    for video in find_channel_uploaded_videos(context, channel_id, is_first_run):
         video_not_registered = not storage.video_exist(video.video_id)
         if video_not_registered:
             _register_video(context, storage, video, is_first_run)

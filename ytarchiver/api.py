@@ -37,7 +37,7 @@ def fetch_channel_livestream(context: Context, channel_id: str) -> Optional[Vide
     return None
 
 
-def find_channel_uploaded_videos(context: Context, channel_id: str) -> Iterator[Video]:
+def find_channel_uploaded_videos(context: Context, channel_id: str, is_first_run: bool=False) -> Iterator[Video]:
     results = context.service.channels().list(
         part="snippet,contentDetails",
         id=channel_id
@@ -65,4 +65,4 @@ def find_channel_uploaded_videos(context: Context, channel_id: str) -> Iterator[
                     channel_name=upload['channelTitle']
                 )
 
-            next_page_token = playlistitems_response.get('nextPageToken')
+            next_page_token = playlistitems_response.get('nextPageToken') if is_first_run else None
