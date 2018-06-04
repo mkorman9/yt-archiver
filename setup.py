@@ -35,5 +35,9 @@ setup(
             'ytarchiver = ytarchiver.main:main'
         ]
     },
-    install_requires=['pytube', 'streamlink', 'google-api-python-client'],
+    install_requires=[
+        'pytube==9.2.2',
+        'streamlink==0.12.1',
+        'google-api-python-client==1.6.4'
+    ],
 )
