@@ -2,6 +2,7 @@ import os
 import logging
 
 import streamlink
+import time
 from pytube import YouTube
 from pytube.helpers import safe_filename
 
@@ -9,7 +10,7 @@ from ytarchiver.common import Video, Context
 
 YOUTUBE_URL_PREFIX = 'https://www.youtube.com/watch?v='
 SUPPORTED_LIVESTREAM_RESOLUTIONS = ['720p', '480p', '360p', '240p', '144p']
-LIVESTREAM_CHUNK_SIZE = 8192
+LIVESTREAM_CHUNK_SIZE = 4 * 1024 * 1024  # 4 MB
 
 
 def record_livestream(livestream: Video, logger: logging.Logger):
@@ -29,11 +30,16 @@ def record_livestream(livestream: Video, logger: logging.Logger):
 
     logging.error('recording {}:{} stream of "{}"'.format(stream.shortname(), best_resolution, livestream.title))
     with open(livestream.filename, 'wb') as out:
-        with stream.open() as handle:
-            while True:
-                buffer = handle.read(LIVESTREAM_CHUNK_SIZE)
-                out.write(buffer)
-                out.flush()
+        try:
+            with stream.open() as handle:
+                while True:
+                    buffer = handle.read(LIVESTREAM_CHUNK_SIZE)
+                    out.write(buffer)
+                    out.flush()
+                    time.sleep(0)
+        except Exception:
+            out.flush()
+            raise
 
 
 def download_video(context: Context, video: Video):
