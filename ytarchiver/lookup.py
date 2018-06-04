@@ -1,9 +1,8 @@
 import logging
-from typing import Any
 
 from googleapiclient.errors import HttpError
 
-from ytarchiver.api import find_channel_uploaded_videos, fetch_channel_livestream, find_channels_list
+from ytarchiver.api import YoutubeChannel
 from ytarchiver.common import Context
 from ytarchiver.download import generate_livestream_filename, generate_video_filename
 from ytarchiver.storage import open_storage, Storage
@@ -19,9 +18,9 @@ def lookup(context: Context, is_first_run: bool):
     context.video_recorders.update(context)
 
     with open_storage(context.config.output_dir) as storage:
-        channels = find_channels_list(context)
-        for channel_id, channel_content in channels:
-            _fetch_channel_content(context, channel_id, channel_content, storage, statistics, is_first_run)
+        channels = context.api.find_channels(context.config.channels_list)
+        for channel in channels:
+            _fetch_channel_content(context, channel, storage, statistics, is_first_run)
             storage.commit()
 
     statistics.announce(context.logger)
@@ -29,13 +28,12 @@ def lookup(context: Context, is_first_run: bool):
 
 def _fetch_channel_content(
         context: Context,
-        channel_id: str,
-        channel_content: Any,
+        channel: YoutubeChannel,
         storage: Storage, statistics,
         is_first_run: bool=False):
     try:
-        _check_for_livestreams(context, channel_id, statistics, storage)
-        _check_for_videos(context, channel_content, is_first_run, statistics, storage)
+        _check_for_livestreams(context, channel, statistics, storage)
+        _check_for_videos(context, channel, is_first_run, statistics, storage)
     except ConnectionError as e:
         context.logger.error('connection to API has failed, skipping lookup')
         context.logger.error(e)
@@ -47,11 +45,11 @@ def _fetch_channel_content(
         context.logger.error(e)
 
 
-def _check_for_livestreams(context: Context, channel_id: str, statistics: '_Statistics', storage: Storage):
+def _check_for_livestreams(context: Context, channel: YoutubeChannel, statistics: '_Statistics', storage: Storage):
     if not context.config.monitor_livestreams:
         return
 
-    livestream = fetch_channel_livestream(context, channel_id)
+    livestream = context.api.fetch_channel_livestream(channel)
     if livestream is not None:
         if not context.livestream_recorders.is_recording_active(livestream.video_id):
             livestream.filename = generate_livestream_filename(context.config.output_dir, livestream)
@@ -62,11 +60,11 @@ def _check_for_livestreams(context: Context, channel_id: str, statistics: '_Stat
 
 
 def _check_for_videos(context: Context,
-                      channel_content: Any,
+                      channel: YoutubeChannel,
                       is_first_run: bool,
                       statistics: '_Statistics',
                       storage: Storage):
-    for video in find_channel_uploaded_videos(context, channel_content, is_first_run):
+    for video in context.api.find_channel_uploaded_videos(channel, find_all=is_first_run):
         video_not_registered = not storage.video_exist(video.video_id) and \
                                not context.video_recorders.is_recording_active(video.video_id)
         if video_not_registered:

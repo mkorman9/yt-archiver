@@ -56,11 +56,13 @@ class RecordersController(metaclass=ABCMeta):
 
 class Context:
     def __init__(self,
-                 config, logger: logging.Logger,
+                 config,
+                 logger: logging.Logger,
+                 api,
                  video_recorders_controller: RecordersController,
                  livestream_recorders_controller: RecordersController):
         self.config = config
         self.logger = logger
-        self.service = None
+        self.api = api
         self.video_recorders = video_recorders_controller
         self.livestream_recorders = livestream_recorders_controller

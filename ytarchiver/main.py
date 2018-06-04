@@ -5,8 +5,8 @@ import sys
 import time
 from datetime import datetime
 
+from ytarchiver.api import YoutubeAPI
 from ytarchiver.args import parse_command_line
-from ytarchiver.api import prepare_context
 from ytarchiver.common import Context
 from ytarchiver.lookup import lookup
 from ytarchiver.recording import MultiprocessLivestreamRecordersController, SynchronousVideoRecordersController
@@ -19,6 +19,7 @@ def main():
     context = Context(
         config,
         logger,
+        api=YoutubeAPI(config.api_key),
         video_recorders_controller=SynchronousVideoRecordersController(),
         livestream_recorders_controller=MultiprocessLivestreamRecordersController()
     )
@@ -48,8 +49,6 @@ def start_listening(context: Context):
     if len(context.config.channels_list) == 0:
         context.logger.error('channels list cannot be empty, use -m option to specify at least one channel id')
         sys.exit(1)
-
-    prepare_context(context)
 
     context.logger.debug('daemon started successfully')
 
