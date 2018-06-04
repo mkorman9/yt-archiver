@@ -1,8 +1,9 @@
 import logging
+from typing import Any
 
 from googleapiclient.errors import HttpError
 
-from ytarchiver.api import find_channel_uploaded_videos, fetch_channel_livestream
+from ytarchiver.api import find_channel_uploaded_videos, fetch_channel_livestream, find_channels_list
 from ytarchiver.common import Context
 from ytarchiver.download import generate_livestream_filename, generate_video_filename
 from ytarchiver.storage import open_storage, Storage
@@ -18,17 +19,23 @@ def lookup(context: Context, is_first_run: bool):
     context.video_recorders.update(context)
 
     with open_storage(context.config.output_dir) as storage:
-        for channel_id in context.config.channels_list:
-            _fetch_channel_content(context, channel_id, storage, statistics, is_first_run)
+        channels = find_channels_list(context)
+        for channel_id, channel_content in channels:
+            _fetch_channel_content(context, channel_id, channel_content, storage, statistics, is_first_run)
             storage.commit()
 
     statistics.announce(context.logger)
 
 
-def _fetch_channel_content(context: Context, channel_id: str, storage: Storage, statistics, is_first_run: bool=False):
+def _fetch_channel_content(
+        context: Context,
+        channel_id: str,
+        channel_content: Any,
+        storage: Storage, statistics,
+        is_first_run: bool=False):
     try:
         _check_for_livestreams(context, channel_id, statistics, storage)
-        _check_for_videos(context, channel_id, is_first_run, statistics, storage)
+        _check_for_videos(context, channel_content, is_first_run, statistics, storage)
     except ConnectionError as e:
         context.logger.error('connection to API has failed, skipping lookup')
         context.logger.error(e)
@@ -54,8 +61,12 @@ def _check_for_livestreams(context: Context, channel_id: str, statistics: '_Stat
         statistics.notify_active_livestream()
 
 
-def _check_for_videos(context: Context, channel_id: str, is_first_run: bool, statistics: '_Statistics', storage: Storage):
-    for video in find_channel_uploaded_videos(context, channel_id, is_first_run):
+def _check_for_videos(context: Context,
+                      channel_content: Any,
+                      is_first_run: bool,
+                      statistics: '_Statistics',
+                      storage: Storage):
+    for video in find_channel_uploaded_videos(context, channel_content, is_first_run):
         video_not_registered = not storage.video_exist(video.video_id) and \
                                not context.video_recorders.is_recording_active(video.video_id)
         if video_not_registered:

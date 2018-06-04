@@ -1,4 +1,4 @@
-from typing import Iterator, Optional
+from typing import Iterator, Optional, List, Any, Tuple
 
 from googleapiclient.discovery import build
 
@@ -15,6 +15,21 @@ def prepare_context(context: Context):
         developerKey=context.config.api_key,
         cache_discovery=False
     )
+
+
+def find_channels_list(context: Context) -> List[Tuple[str, Any]]:
+    retrieved_channels = []
+    request_for = ','.join(context.config.channels_list)
+
+    results = context.service.channels().list(
+        part="snippet,contentDetails",
+        id=request_for
+    ).execute()
+
+    for data in results['items']:
+        retrieved_channels.append((data['id'], data['contentDetails']))
+
+    return retrieved_channels
 
 
 def fetch_channel_livestream(context: Context, channel_id: str) -> Optional[ContentItem]:
@@ -37,32 +52,26 @@ def fetch_channel_livestream(context: Context, channel_id: str) -> Optional[Cont
     return None
 
 
-def find_channel_uploaded_videos(context: Context, channel_id: str, is_first_run: bool=False) -> Iterator[ContentItem]:
-    results = context.service.channels().list(
-        part="snippet,contentDetails",
-        id=channel_id
-    ).execute()
+def find_channel_uploaded_videos(context: Context, channel_content: Any, is_first_run: bool=False) -> Iterator[ContentItem]:
+    uploads_playlist_id = channel_content['relatedPlaylists']['uploads']
+    next_page_token = ''
 
-    for channel in results['items']:
-        uploads_playlist_id = channel['contentDetails']['relatedPlaylists']['uploads']
-        next_page_token = ''
+    while next_page_token is not None:
+        playlistitems_response = context.service.playlistItems().list(
+            playlistId=uploads_playlist_id,
+            part='snippet',
+            maxResults=50,
+            pageToken=next_page_token
+        ).execute()
 
-        while next_page_token is not None:
-            playlistitems_response = context.service.playlistItems().list(
-                playlistId=uploads_playlist_id,
-                part='snippet',
-                maxResults=50,
-                pageToken=next_page_token
-            ).execute()
+        for playlist_item in playlistitems_response['items']:
+            upload = playlist_item['snippet']
+            yield ContentItem(
+                video_id=upload['resourceId']['videoId'],
+                channel_id=upload['channelId'],
+                timestamp=upload['publishedAt'],
+                title=upload['title'],
+                channel_name=upload['channelTitle']
+            )
 
-            for playlist_item in playlistitems_response['items']:
-                upload = playlist_item['snippet']
-                yield ContentItem(
-                    video_id=upload['resourceId']['videoId'],
-                    channel_id=upload['channelId'],
-                    timestamp=upload['publishedAt'],
-                    title=upload['title'],
-                    channel_name=upload['channelTitle']
-                )
-
-            next_page_token = playlistitems_response.get('nextPageToken') if is_first_run else None
+        next_page_token = playlistitems_response.get('nextPageToken') if is_first_run else None
