@@ -9,13 +9,6 @@ DEFAULT_MONITOR_LIVESTREAMS = False
 def parse_command_line():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '-l', '--list',
-        dest='do_list',
-        help='do not listen for videos but rather list already saved ones',
-        default=False,
-        action='store_true'
-    )
-    parser.add_argument(
         '-t', '--time',
         dest='refresh_time',
         help='time between consecutive lookups for videos (in seconds)',

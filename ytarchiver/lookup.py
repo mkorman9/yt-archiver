@@ -5,7 +5,7 @@ from googleapiclient.errors import HttpError
 from ytarchiver.api import YoutubeChannel
 from ytarchiver.common import Context
 from ytarchiver.download import generate_livestream_filename, generate_video_filename
-from ytarchiver.storage import open_storage, Storage
+from ytarchiver.storage import Sqlite3Storage
 
 
 def lookup(context: Context, is_first_run: bool):
@@ -17,7 +17,7 @@ def lookup(context: Context, is_first_run: bool):
     context.livestream_recorders.update(context)
     context.video_recorders.update(context)
 
-    with open_storage(context.config.output_dir) as storage:
+    with context.storage.open(context.config.output_dir) as storage:
         channels = context.api.find_channels(context.config.channels_list)
         for channel in channels:
             _fetch_channel_content(context, channel, storage, statistics, is_first_run)
@@ -29,7 +29,7 @@ def lookup(context: Context, is_first_run: bool):
 def _fetch_channel_content(
         context: Context,
         channel: YoutubeChannel,
-        storage: Storage, statistics,
+        storage: Sqlite3Storage, statistics,
         is_first_run: bool=False):
     try:
         _check_for_livestreams(context, channel, statistics, storage)
@@ -45,15 +45,15 @@ def _fetch_channel_content(
         context.logger.error(e)
 
 
-def _check_for_livestreams(context: Context, channel: YoutubeChannel, statistics: '_Statistics', storage: Storage):
+def _check_for_livestreams(context: Context, channel: YoutubeChannel, statistics: '_Statistics', storage: Sqlite3Storage):
     if not context.config.monitor_livestreams:
         return
 
     livestream = context.api.fetch_channel_livestream(channel)
     if livestream is not None:
         if not context.livestream_recorders.is_recording_active(livestream.video_id):
-            livestream.filename = generate_livestream_filename(context.config.output_dir, livestream)
             context.logger.info('new livestream "{}"'.format(livestream.title))
+            livestream.filename = generate_livestream_filename(context.config.output_dir, livestream)
             context.livestream_recorders.start_recording(context, livestream)
             storage.add_livestream(livestream)
         statistics.notify_active_livestream()
@@ -63,14 +63,14 @@ def _check_for_videos(context: Context,
                       channel: YoutubeChannel,
                       is_first_run: bool,
                       statistics: '_Statistics',
-                      storage: Storage):
+                      storage: Sqlite3Storage):
     for video in context.api.find_channel_uploaded_videos(channel, find_all=is_first_run):
         video_not_registered = not storage.video_exist(video.video_id) and \
                                not context.video_recorders.is_recording_active(video.video_id)
         if video_not_registered:
-            video.filename = generate_video_filename(context.config.output_dir, video)
             context.logger.info('new video "{}"'.format(video.title))
             if not is_first_run or context.config.archive_all:
+                video.filename = generate_video_filename(context.config.output_dir, video)
                 context.video_recorders.start_recording(context, video)
             storage.add_video(video)
         statistics.notify_video(new=video_not_registered)

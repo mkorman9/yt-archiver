@@ -54,15 +54,23 @@ class RecordersController(metaclass=ABCMeta):
         pass
 
 
+class StorageManager(metaclass=ABCMeta):
+    @abstractmethod
+    def open(self, *args, **kwargs):
+        pass
+
+
 class Context:
     def __init__(self,
                  config,
                  logger: logging.Logger,
                  api,
                  video_recorders_controller: RecordersController,
-                 livestream_recorders_controller: RecordersController):
+                 livestream_recorders_controller: RecordersController,
+                 storage_manager: StorageManager):
         self.config = config
         self.logger = logger
         self.api = api
         self.video_recorders = video_recorders_controller
         self.livestream_recorders = livestream_recorders_controller
+        self.storage = storage_manager

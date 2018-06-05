@@ -1,16 +1,24 @@
 import os
 import sqlite3
 from contextlib import contextmanager
-from typing import Iterator, List
+from typing import Iterator
 
-from ytarchiver.common import ContentItem, Context
-
-STORAGE_FILE = 'storage.sqlite'
+from ytarchiver.common import ContentItem, StorageManager
 
 
-class Storage:
+class Sqlite3StorageManager(StorageManager):
+    @contextmanager
+    def open(self, output_directory: str, initialise: bool=True) -> 'Sqlite3Storage':
+        s = Sqlite3Storage(output_directory, initialise)
+        yield s
+        s.close()
+
+
+class Sqlite3Storage:
+    STORAGE_FILE = 'storage.sqlite'
+
     def __init__(self, output_directory: str, initialise: bool=True):
-        path = os.path.join(output_directory, STORAGE_FILE)
+        path = os.path.join(output_directory, Sqlite3Storage.STORAGE_FILE)
         storage_exist = os.path.isfile(path)
 
         self.output_directory = output_directory
@@ -84,20 +92,3 @@ class Storage:
             ')'
         )
         self.connection.commit()
-
-
-@contextmanager
-def open_storage(directory: str, initialise: bool=True) -> Storage:
-    s = Storage(directory, initialise=initialise)
-    yield s
-    s.close()
-
-
-def get_saved_content(context: Context) -> List[ContentItem]:
-    storage_path = os.path.join(context.config.output_dir, STORAGE_FILE)
-    if not os.path.isfile(storage_path):
-        context.logger.warning('storage file does not exist: ' + storage_path)
-        return []
-
-    with open_storage(context.config.output_dir, initialise=False) as s:
-        return list(s.list_videos()) + list(s.list_livestreams())

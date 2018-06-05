@@ -20,12 +20,13 @@ class YoutubeChannel:
 
 class YoutubeAPI:
     def __init__(self, key: str):
-        self._service = build(
-            YOUTUBE_API_SERVICE_NAME,
-            YOUTUBE_API_VERSION,
-            developerKey=key,
-            cache_discovery=False
-        )
+        if key is not None:
+            self._service = build(
+                YOUTUBE_API_SERVICE_NAME,
+                YOUTUBE_API_VERSION,
+                developerKey=key,
+                cache_discovery=False
+            )
 
     def find_channels(self, channels_ids_list: List[str]) -> Iterator[YoutubeChannel]:
         request_for = ','.join(channels_ids_list)

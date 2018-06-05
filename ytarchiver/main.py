@@ -10,7 +10,7 @@ from ytarchiver.args import parse_command_line
 from ytarchiver.common import Context
 from ytarchiver.lookup import lookup
 from ytarchiver.recording import MultiprocessLivestreamRecordersController, SynchronousVideoRecordersController
-from ytarchiver.storage import get_saved_content
+from ytarchiver.storage import Sqlite3StorageManager
 
 
 def main():
@@ -21,13 +21,11 @@ def main():
         logger,
         api=YoutubeAPI(config.api_key),
         video_recorders_controller=SynchronousVideoRecordersController(),
-        livestream_recorders_controller=MultiprocessLivestreamRecordersController()
+        livestream_recorders_controller=MultiprocessLivestreamRecordersController(),
+        storage_manager=Sqlite3StorageManager()
     )
 
-    if config.do_list:
-        list_videos(context)
-    else:
-        start_listening(context)
+    start_monitoring(context)
 
 
 def create_logger():
@@ -38,13 +36,7 @@ def create_logger():
     return logger
 
 
-def list_videos(context: Context):
-    context.logger.info('Video ID\tChannel ID\tTimestamp\tTitle\tChannel Name\tFilename')
-    for entry in get_saved_content(context):
-        context.logger.info(entry)
-
-
-def start_listening(context: Context):
+def start_monitoring(context: Context):
     ensure_dir_exist(context.config.output_dir, context.logger)
     if len(context.config.channels_list) == 0:
         context.logger.error('channels list cannot be empty, use -m option to specify at least one channel id')
