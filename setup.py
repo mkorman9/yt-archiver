@@ -40,4 +40,7 @@ setup(
         'streamlink==0.12.1',
         'google-api-python-client==1.6.4'
     ],
+    tests_require=[
+        'mock==2.0.0'
+    ]
 )

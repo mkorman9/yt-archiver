@@ -56,7 +56,7 @@ class RecordersController(metaclass=ABCMeta):
 
 class StorageManager(metaclass=ABCMeta):
     @abstractmethod
-    def open(self, *args, **kwargs):
+    def open(self, context):
         pass
 
 

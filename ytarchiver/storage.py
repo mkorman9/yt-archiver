@@ -3,13 +3,13 @@ import sqlite3
 from contextlib import contextmanager
 from typing import Iterator
 
-from ytarchiver.common import ContentItem, StorageManager
+from ytarchiver.common import ContentItem, StorageManager, Context
 
 
 class Sqlite3StorageManager(StorageManager):
     @contextmanager
-    def open(self, output_directory: str, initialise: bool=True) -> 'Sqlite3Storage':
-        s = Sqlite3Storage(output_directory, initialise)
+    def open(self, context: Context) -> 'Sqlite3Storage':
+        s = Sqlite3Storage(context.config.output_dir)
         yield s
         s.close()
 
@@ -17,14 +17,14 @@ class Sqlite3StorageManager(StorageManager):
 class Sqlite3Storage:
     STORAGE_FILE = 'storage.sqlite'
 
-    def __init__(self, output_directory: str, initialise: bool=True):
+    def __init__(self, output_directory: str):
         path = os.path.join(output_directory, Sqlite3Storage.STORAGE_FILE)
         storage_exist = os.path.isfile(path)
 
         self.output_directory = output_directory
         self.connection = sqlite3.connect(path)
 
-        if initialise and not storage_exist:
+        if not storage_exist:
             self._initialise_schema()
 
     def close(self):
