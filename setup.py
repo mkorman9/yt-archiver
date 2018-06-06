@@ -7,6 +7,10 @@ with open('README.md') as f:
 with open('LICENSE.txt') as f:
     license = f.read()
 
+test_requirements = [
+    'mock==2.0.0',
+    'pytest==3.6.1'
+]
 
 setup(
     name='yt-archiver',
@@ -40,7 +44,6 @@ setup(
         'streamlink==0.12.1',
         'google-api-python-client==1.6.4'
     ],
-    tests_require=[
-        'mock==2.0.0'
-    ]
+    tests_require=test_requirements,
+    extras_require={'test': test_requirements}
 )
