@@ -1,0 +1,14 @@
+image: python:3.6
+
+stages:
+  - build
+
+before_script:
+  - make install
+
+test:
+  stage: build
+  script:
+    - make test
+  only:
+    - branches
