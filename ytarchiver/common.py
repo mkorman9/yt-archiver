@@ -1,6 +1,7 @@
 import logging
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
+from typing import Iterator
 
 
 class ContentItem:
@@ -54,9 +55,39 @@ class RecordersController(metaclass=ABCMeta):
         pass
 
 
+class Storage(metaclass=ABCMeta):
+    @abstractmethod
+    def close(self):
+        pass
+
+    @abstractmethod
+    def list_videos(self) -> Iterator[ContentItem]:
+        pass
+
+    @abstractmethod
+    def list_livestreams(self) -> Iterator[ContentItem]:
+        pass
+
+    @abstractmethod
+    def video_exist(self, video_id: str):
+        pass
+
+    @abstractmethod
+    def add_video(self, entry: 'ContentItem'):
+        pass
+
+    @abstractmethod
+    def add_livestream(self, entry: 'ContentItem'):
+        pass
+
+    @abstractmethod
+    def commit(self):
+        pass
+
+
 class StorageManager(metaclass=ABCMeta):
     @abstractmethod
-    def open(self, context):
+    def open(self, config) -> Storage:
         pass
 
 

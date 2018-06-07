@@ -3,18 +3,18 @@ import sqlite3
 from contextlib import contextmanager
 from typing import Iterator
 
-from ytarchiver.common import ContentItem, StorageManager, Context
+from ytarchiver.common import ContentItem, StorageManager, Storage
 
 
 class Sqlite3StorageManager(StorageManager):
     @contextmanager
-    def open(self, context: Context) -> 'Sqlite3Storage':
-        s = Sqlite3Storage(context.config.output_dir)
+    def open(self, config) -> 'Sqlite3Storage':
+        s = Sqlite3Storage(config.output_dir)
         yield s
         s.close()
 
 
-class Sqlite3Storage:
+class Sqlite3Storage(Storage):
     STORAGE_FILE = 'storage.sqlite'
 
     def __init__(self, output_directory: str):

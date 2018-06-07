@@ -17,7 +17,7 @@ def lookup(context: Context, is_first_run: bool):
     context.livestream_recorders.update(context)
     context.video_recorders.update(context)
 
-    with context.storage.open(context) as storage:
+    with context.storage.open(context.config) as storage:
         channels = context.api.find_channels(context.config.channels_list)
         for channel in channels:
             _fetch_channel_content(context, channel, storage, statistics, is_first_run)
