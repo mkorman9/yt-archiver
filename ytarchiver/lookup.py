@@ -5,7 +5,7 @@ from googleapiclient.errors import HttpError
 from ytarchiver.api import YoutubeChannel
 from ytarchiver.common import Context
 from ytarchiver.download import generate_livestream_filename, generate_video_filename
-from ytarchiver.storage import Sqlite3Storage
+from ytarchiver.sqlite import Sqlite3Storage
 
 
 def lookup(context: Context, is_first_run: bool):
