@@ -7,6 +7,12 @@ with open('README.md') as f:
 with open('LICENSE.txt') as f:
     license = f.read()
 
+runtime_requirements = [
+    'pytube==9.2.2',
+    'streamlink==0.12.1',
+    'google-api-python-client==1.6.4'
+]
+
 test_requirements = [
     'mock==2.0.0',
     'pytest==3.6.1'
@@ -14,7 +20,7 @@ test_requirements = [
 
 setup(
     name='yt-archiver',
-    version='0.4.0',
+    version='0.5.0',
     description='Daemon for monitoring YouTube channels for new videos. Offers automatic backup of uploaded content',
     long_description=readme,
     license=license,
@@ -39,11 +45,7 @@ setup(
             'ytarchiver = ytarchiver.main:main'
         ]
     },
-    install_requires=[
-        'pytube==9.2.2',
-        'streamlink==0.12.1',
-        'google-api-python-client==1.6.4'
-    ],
+    install_requires=runtime_requirements,
     tests_require=test_requirements,
     extras_require={'test': test_requirements}
 )
