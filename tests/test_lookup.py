@@ -39,7 +39,6 @@ class LookupTest(TestCase):
         context, storage = _create_context_and_storage()
 
         context.config.archive_all = False
-        context.config.output_dir = 'output_directory'
         context.config.monitor_livestreams = False
 
         storage.video_exist.return_value = False
@@ -68,7 +67,6 @@ class LookupTest(TestCase):
         context, storage = _create_context_and_storage()
 
         context.config.archive_all = False
-        context.config.output_dir = 'output_directory'
         context.config.monitor_livestreams = True
 
         storage.video_exist.return_value = False
@@ -102,7 +100,6 @@ class LookupTest(TestCase):
         context, storage = _create_context_and_storage()
 
         context.config.archive_all = True
-        context.config.output_dir = 'output_directory'
         context.config.monitor_livestreams = False
 
         storage.video_exist.return_value = False
@@ -134,7 +131,6 @@ class LookupTest(TestCase):
         context, storage = _create_context_and_storage()
 
         context.config.archive_all = False
-        context.config.output_dir = 'output_directory'
         context.config.monitor_livestreams = False
 
         storage.video_exist.return_value = False
@@ -161,9 +157,35 @@ class LookupTest(TestCase):
         context.livestream_recorders.start_recording.assert_not_called()
         storage.commit.assert_called()
 
+    def test_should_not_download_if_video_already_exist(self):
+        # given
+        context, storage = _create_context_and_storage()
+
+        context.config.archive_all = False
+        context.config.monitor_livestreams = False
+
+        storage.video_exist.return_value = True
+
+        context.video_recorders.is_recording_active.return_value = False
+        context.livestream_recorders.is_recording_active.return_value = False
+
+        context.api.find_channels.return_value = [CHANNEL_1]
+        context.api.find_channel_uploaded_videos.return_value = [VIDEO_1, VIDEO_2]
+
+        # when
+        lookup(context, is_first_run=False)
+
+        # then
+        storage.add_video.assert_not_called()
+        storage.add_livestream.assert_not_called()
+        context.video_recorders.start_recording.assert_not_called()
+        context.livestream_recorders.start_recording.assert_not_called()
+        storage.commit.assert_called()
+
 
 def _create_context_and_storage():
     config = MagicMock()
+    config.output_dir = 'fake_output_directory'
     logger = create_autospec(logging.Logger, spec_set=True)
     api = create_autospec(YoutubeAPI, spec_set=True)
     video_recorders_controller = create_autospec(RecordersController, spec_set=True)
