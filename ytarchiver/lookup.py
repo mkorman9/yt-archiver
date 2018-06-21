@@ -18,10 +18,20 @@ def lookup(context: Context, is_first_run: bool):
     context.video_recorders.update(context)
 
     with context.storage.open(context.config) as storage:
-        channels = context.api.find_channels(context.config.channels_list)
-        for channel in channels:
-            _fetch_channel_content(context, channel, storage, statistics, is_first_run)
-            storage.commit()
+        try:
+            channels = context.api.find_channels(context.config.channels_list)
+            for channel in channels:
+                _fetch_channel_content(context, channel, storage, statistics, is_first_run)
+                storage.commit()
+        except ConnectionError as e:
+            context.logger.error('connection to API has failed, skipping lookup')
+            context.logger.error(e)
+        except HttpError as e:
+            context.logger.error('API call has failed, skipping lookup')
+            context.logger.error(e)
+        except Exception as e:
+            context.logger.error('unknown error')
+            context.logger.error(e)
 
     statistics.announce(context.logger)
 
@@ -31,18 +41,8 @@ def _fetch_channel_content(
         channel: YoutubeChannel,
         storage: Sqlite3Storage, statistics,
         is_first_run: bool=False):
-    try:
-        _check_for_livestreams(context, channel, statistics, storage)
-        _check_for_videos(context, channel, is_first_run, statistics, storage)
-    except ConnectionError as e:
-        context.logger.error('connection to API has failed, skipping lookup')
-        context.logger.error(e)
-    except HttpError as e:
-        context.logger.error('API call has failed, skipping lookup')
-        context.logger.error(e)
-    except Exception as e:
-        context.logger.error('unknown error')
-        context.logger.error(e)
+    _check_for_livestreams(context, channel, statistics, storage)
+    _check_for_videos(context, channel, is_first_run, statistics, storage)
 
 
 def _check_for_livestreams(context: Context, channel: YoutubeChannel, statistics: '_Statistics', storage: Sqlite3Storage):
