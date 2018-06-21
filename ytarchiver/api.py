@@ -9,13 +9,9 @@ YOUTUBE_API_VERSION = "v3"
 
 
 class YoutubeChannel:
-    def __init__(self, id: str, data: Any):
+    def __init__(self, id: str, uploads_playlist_id: str):
         self.id = id
-        self.data = data
-
-    @property
-    def uploads_playlist_id(self):
-        return self.data['relatedPlaylists']['uploads']
+        self.uploads_playlist_id = uploads_playlist_id
 
 
 class YoutubeAPI:
@@ -37,7 +33,10 @@ class YoutubeAPI:
         ).execute()
 
         for data in results['items']:
-            yield YoutubeChannel(data['id'], data['contentDetails'])
+            yield YoutubeChannel(
+                data['id'],
+                data['contentDetails']['relatedPlaylists']['uploads']
+            )
 
     def fetch_channel_livestream(self, channel: YoutubeChannel) -> Optional[ContentItem]:
         live_streams = self._service.search().list(

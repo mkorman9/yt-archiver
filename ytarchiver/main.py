@@ -10,7 +10,7 @@ from ytarchiver.args import parse_command_line
 from ytarchiver.common import Context
 from ytarchiver.lookup import lookup
 from ytarchiver.recording import MultiprocessLivestreamRecordersController, SynchronousVideoRecordersController
-from ytarchiver.storage import Sqlite3StorageManager
+from ytarchiver.sqlite import Sqlite3StorageManager
 
 
 def main():
