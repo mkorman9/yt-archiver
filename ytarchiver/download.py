@@ -68,10 +68,10 @@ def download_video(context: Context, video: ContentItem):
 def download_livestream(livestream: ContentItem, logger: logging.Logger):
     """
     Starts recording given livestream. Blocks until the stream is finished or error occurs.
-    Passes exceptions from underlying library through.
 
     :param livestream: livestream to record
     :param logger: logger to write error messages to
+    :exception DownloadError
     """
     try:
         url = YOUTUBE_URL_PREFIX + livestream.video_id
