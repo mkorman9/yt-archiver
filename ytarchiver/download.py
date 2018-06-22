@@ -15,32 +15,54 @@ MEGABYTE = 1024 * 1024
 LIVESTREAM_CHUNK_SIZE = 4 * MEGABYTE
 
 
+class DownloadError(Exception):
+    """
+    Error caused by stream download
+    """
+
+    def __init__(self, title, cause):
+        super(DownloadError, self).__init__(title, cause)
+
+
+class LivestreamInterruptedError(Exception):
+    """
+    Error caused when livestream is interrupted unexpectedly
+    """
+
+    def __init__(self, title, cause):
+        super(LivestreamInterruptedError, self).__init__(title, cause)
+
+
 def download_video(context: Context, video: ContentItem):
     """
-    Starts downloading specified video to disk. Blocks. Passes exceptions from underlying library through.
+    Starts downloading specified video to disk. Blocks.
 
     :param context: execution context
     :param video: video to download
+    :exception DownloadError
     """
-    download_callback = _VideoDownloadCallback(
-        context=context,
-        video=video
-    )
-    yt = YouTube(
-        YOUTUBE_URL_PREFIX + video.video_id,
-        on_complete_callback=download_callback.on_complete,
-        on_progress_callback=download_callback.on_progress
-    )
+    try:
+        download_callback = _VideoDownloadCallback(
+            context=context,
+            video=video
+        )
+        yt = YouTube(
+            YOUTUBE_URL_PREFIX + video.video_id,
+            on_complete_callback=download_callback.on_complete,
+            on_progress_callback=download_callback.on_progress
+        )
 
-    streams = yt.streams.all()
-    stream = _choose_best_video_stream(streams)
-    download_callback.total_video_size = stream.filesize
+        streams = yt.streams.all()
+        stream = _choose_best_video_stream(streams)
+        download_callback.total_video_size = stream.filesize
 
-    context.logger.info('started downloading video "{}"'.format(video.title))
-    stream.download(
-        output_path=os.path.dirname(video.filename),
-        filename=os.path.splitext(os.path.basename(video.filename))[0]
-    )
+        context.logger.info('started downloading video "{}"'.format(video.title))
+        stream.download(
+            output_path=os.path.dirname(video.filename),
+            filename=os.path.splitext(os.path.basename(video.filename))[0]
+        )
+    except Exception as e:
+        raise DownloadError(video.title, e)
 
 
 def download_livestream(livestream: ContentItem, logger: logging.Logger):
@@ -51,23 +73,28 @@ def download_livestream(livestream: ContentItem, logger: logging.Logger):
     :param livestream: livestream to record
     :param logger: logger to write error messages to
     """
-    url = YOUTUBE_URL_PREFIX + livestream.video_id
-    available_streams = streamlink.api.streams(url)
-    best_resolution = _choose_best_livestream_resolution(available_streams)
-    if best_resolution is None:
-        logger.error('no supported resolution found for "{}"'.format(livestream.title))
-        return
+    try:
+        url = YOUTUBE_URL_PREFIX + livestream.video_id
+        available_streams = streamlink.api.streams(url)
+        best_resolution = _choose_best_livestream_resolution(available_streams)
+        if best_resolution is None:
+            logger.error('no supported resolution found for "{}"'.format(livestream.title))
+            return
 
-    stream = available_streams[best_resolution]
+        stream = available_streams[best_resolution]
 
-    logging.error('recording {}:{} stream of "{}"'.format(stream.shortname(), best_resolution, livestream.title))
-    with open(livestream.filename, 'wb') as out:
-        with stream.open() as handle:
-            while True:
-                buffer = handle.read(LIVESTREAM_CHUNK_SIZE)
-                out.write(buffer)
-                out.flush()
-                time.sleep(0)
+        logging.error('recording {}:{} stream of "{}"'.format(stream.shortname(), best_resolution, livestream.title))
+        with open(livestream.filename, 'wb') as out:
+            with stream.open() as handle:
+                while True:
+                    buffer = handle.read(LIVESTREAM_CHUNK_SIZE)
+                    out.write(buffer)
+                    out.flush()
+                    time.sleep(0)
+    except (IOError, EOFError) as e:
+        raise LivestreamInterruptedError(livestream.title, e)
+    except Exception as e:
+        raise DownloadError(livestream.title, e)
 
 
 def sanitize_filename(s: str) -> str:

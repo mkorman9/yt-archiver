@@ -1,10 +1,9 @@
 import logging
 
-from googleapiclient.errors import HttpError
-
-from ytarchiver.api import YoutubeChannel
+from ytarchiver.api import YoutubeChannel, APIError
 from ytarchiver.common import Context
-from ytarchiver.download import generate_livestream_filename, generate_video_filename
+from ytarchiver.download import generate_livestream_filename, generate_video_filename, DownloadError, \
+    LivestreamInterruptedError
 from ytarchiver.sqlite import Sqlite3Storage
 
 
@@ -23,15 +22,14 @@ def lookup(context: Context, is_first_run: bool):
             for channel in channels:
                 _fetch_channel_content(context, channel, storage, statistics, is_first_run)
                 storage.commit()
-        except ConnectionError as e:
-            context.logger.error('connection to API has failed, skipping lookup')
-            context.logger.error(e)
-        except HttpError as e:
-            context.logger.error('API call has failed, skipping lookup')
-            context.logger.error(e)
-        except Exception as e:
-            context.logger.error('unknown error')
-            context.logger.error(e)
+        except APIError:
+            context.logger.exception('error while making API call')
+        except DownloadError:
+            context.logger.exception('error while downloading')
+        except LivestreamInterruptedError:
+            context.logger.exception('livestream finished unexpectedly')
+        except Exception:
+            context.logger.exception('unknown error')
 
     statistics.announce(context.logger)
 
