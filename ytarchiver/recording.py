@@ -5,7 +5,7 @@ from queue import Empty
 from typing import Iterator
 
 from ytarchiver.common import RecordersController, ContentItem, Context
-from ytarchiver.download import record_livestream, download_video
+from ytarchiver.download import download_livestream, download_video
 
 
 class RecorderShutdownMessage:
@@ -78,7 +78,7 @@ class MultiprocessLivestreamRecordersController(MultiprocessRecordersController)
 
 def _livestream_recorder_task(item: ContentItem, recorders_queue: MultiprocessRecordersQueue, logger: logging.Logger):
     try:
-        record_livestream(item, logger)
+        download_livestream(item, logger)
     except (IOError, EOFError):
         logger.error('stream "{}" finished unexpectedly'.format(item.title))
     except Exception as e:

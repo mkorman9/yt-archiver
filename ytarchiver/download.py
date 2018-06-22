@@ -11,36 +11,50 @@ from ytarchiver.common import ContentItem, Context
 
 YOUTUBE_URL_PREFIX = 'https://www.youtube.com/watch?v='
 SUPPORTED_LIVESTREAM_RESOLUTIONS = ['720p', '480p', '360p', '240p', '144p']
-LIVESTREAM_CHUNK_SIZE = 4 * 1024 * 1024  # 4 MB
+MEGABYTE = 1024 * 1024
+LIVESTREAM_CHUNK_SIZE = 4 * MEGABYTE
 
 
-def sanitize_filename(filename):
-    filename = safe_filename(filename)
-    filename = filename.replace(' ', '_')
-    return filename.encode('ascii', 'ignore').decode('ascii')
+def download_video(context: Context, video: ContentItem):
+    """
+    Starts downloading specified video to disk. Blocks. Passes exceptions from underlying library through.
+
+    :param context: execution context
+    :param video: video to download
+    """
+    download_callback = _VideoDownloadCallback(
+        context=context,
+        video=video
+    )
+    yt = YouTube(
+        YOUTUBE_URL_PREFIX + video.video_id,
+        on_complete_callback=download_callback.on_complete,
+        on_progress_callback=download_callback.on_progress
+    )
+
+    streams = yt.streams.all()
+    stream = _choose_best_video_stream(streams)
+    download_callback.total_video_size = stream.filesize
+
+    context.logger.info('started downloading video "{}"'.format(video.title))
+    stream.download(
+        output_path=os.path.dirname(video.filename),
+        filename=os.path.splitext(os.path.basename(video.filename))[0]
+    )
 
 
-def generate_livestream_filename(output_path: str, livestream: ContentItem):
-    now = datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')
-    filename = '{}_{}.{}'.format(now, sanitize_filename(livestream.title), 'ts')
-    return os.path.join(output_path, filename)
+def download_livestream(livestream: ContentItem, logger: logging.Logger):
+    """
+    Starts recording given livestream. Blocks until the stream is finished or error occurs.
+    Passes exceptions from underlying library through.
 
-
-def generate_video_filename(output_path: str, video: ContentItem):
-    filename = '{}_{}.{}'.format(video.timestamp, sanitize_filename(video.title), 'mp4')
-    return os.path.join(output_path, filename)
-
-
-def record_livestream(livestream: ContentItem, logger: logging.Logger):
+    :param livestream: livestream to record
+    :param logger: logger to write error messages to
+    """
     url = YOUTUBE_URL_PREFIX + livestream.video_id
     available_streams = streamlink.api.streams(url)
-
-    best_resolution = ''
-    for resolution in SUPPORTED_LIVESTREAM_RESOLUTIONS:
-        if resolution in available_streams:
-            best_resolution = resolution
-            break
-    if best_resolution == '':
+    best_resolution = _choose_best_livestream_resolution(available_streams)
+    if best_resolution is None:
         logger.error('no supported resolution found for "{}"'.format(livestream.title))
         return
 
@@ -48,40 +62,80 @@ def record_livestream(livestream: ContentItem, logger: logging.Logger):
 
     logging.error('recording {}:{} stream of "{}"'.format(stream.shortname(), best_resolution, livestream.title))
     with open(livestream.filename, 'wb') as out:
-        try:
-            with stream.open() as handle:
-                while True:
-                    buffer = handle.read(LIVESTREAM_CHUNK_SIZE)
-                    out.write(buffer)
-                    out.flush()
-                    time.sleep(0)
-        except Exception:
-            out.flush()
-            raise
+        with stream.open() as handle:
+            while True:
+                buffer = handle.read(LIVESTREAM_CHUNK_SIZE)
+                out.write(buffer)
+                out.flush()
+                time.sleep(0)
 
 
-def download_video(context: Context, video: ContentItem):
-    download_link = YOUTUBE_URL_PREFIX + video.video_id
-    total_size = 0
+def sanitize_filename(s: str) -> str:
+    """
+    Processes given string, making it safe to be a correct filename.
 
-    def on_progress(stream, chunk, handle, bytes_remaining):
-        context.logger.debug('progress... {}/{}'.format(total_size - bytes_remaining, total_size))
+    :param s: input string
+    :return: string safe for filesystem
+    """
+    s = safe_filename(s)
+    s = s.replace(' ', '_')
+    return s.encode('ascii', 'ignore').decode('ascii')
 
-    def on_complete(stream, handle):
-        context.logger.debug('download of "{}" complete'.format(video.title))
 
-    yt = YouTube(download_link)
-    yt.register_on_complete_callback(on_complete)
-    yt.register_on_progress_callback(on_progress)
-    streams = yt.streams.all()
-    stream = _choose_best_video_stream(streams)
-    total_size = stream.filesize
+def generate_livestream_filename(output_path: str, livestream: ContentItem):
+    """
+    Generates path to save given livestream. Sanitizes title.
 
-    context.logger.info('started downloading "{}"'.format(video.title))
-    stream.download(
-        output_path=os.path.dirname(video.filename),
-        filename=os.path.splitext(os.path.basename(video.filename))[0]
-    )
+    :param output_path: output directory
+    :param livestream: livestream to generate filename from
+    :return: path containing current timestamp and sanitized livestream title
+    """
+    now = datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%f')
+    filename = '{}_{}.{}'.format(now, sanitize_filename(livestream.title), 'ts')
+    return os.path.join(output_path, filename)
+
+
+def generate_video_filename(output_path: str, video: ContentItem):
+    """
+    Generates path to save given video. Sanitizes title.
+
+    :param output_path: output directory
+    :param video: video to generate filename from
+    :return: path containing sanitized video title
+    """
+    filename = '{}_{}.{}'.format(video.timestamp, sanitize_filename(video.title), 'mp4')
+    return os.path.join(output_path, filename)
+
+
+class _VideoDownloadCallback:
+    PROGRESS_MESSAGES_LIMIT = 5
+
+    def __init__(self, context: Context, video: ContentItem, total_video_size: int=0):
+        self._context = context
+        self._video = video
+        self.total_video_size = total_video_size
+        self.__progress_callback_counter = 0
+
+    def on_progress(self, stream, chunk, handle, bytes_remaining):
+        self.__progress_callback_counter += 1
+        if self.__progress_callback_counter != _VideoDownloadCallback.PROGRESS_MESSAGES_LIMIT:
+            return
+        self.__progress_callback_counter = 0
+
+        self._context.logger.debug(
+            'downloading video "{}"... {:.2f}/{:.2f} MB'.format(
+                self._video.title,
+                (self.total_video_size - bytes_remaining) / MEGABYTE,
+                self.total_video_size / MEGABYTE
+            )
+        )
+
+    def on_complete(self, stream, handle):
+        self._context.logger.debug(
+            'download of video "{}" is complete'.format(
+                self._video.title
+            )
+        )
 
 
 def _choose_best_video_stream(streams):
@@ -100,3 +154,13 @@ def _choose_best_video_stream(streams):
                 best_stream = stream
 
     return best_stream
+
+
+def _choose_best_livestream_resolution(streams):
+    best_resolution = None
+    for resolution in SUPPORTED_LIVESTREAM_RESOLUTIONS:
+        if resolution in streams:
+            best_resolution = resolution
+            break
+
+    return best_resolution
