@@ -9,7 +9,7 @@ from ytarchiver.common import Context, RecordersController, StorageManager, Cont
 from ytarchiver.lookup import lookup
 
 
-CHANNEL_1 = YoutubeChannel('id1', {'relatedPlaylists': {'uploads': 'uploads_playlistid1'}})
+CHANNEL_1 = YoutubeChannel('id1',  'uploads_playlistid1')
 VIDEO_1 = ContentItem(
     video_id='video1',
     channel_id='channel_id',
