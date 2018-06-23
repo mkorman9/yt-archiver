@@ -56,6 +56,10 @@ class RecordersController(metaclass=ABCMeta):
 
 
 class Storage(metaclass=ABCMeta):
+    """
+    Storage for metadata of videos and livestreams
+    """
+
     @abstractmethod
     def close(self):
         pass
@@ -86,12 +90,20 @@ class Storage(metaclass=ABCMeta):
 
 
 class StorageManager(metaclass=ABCMeta):
+    """
+    Abstraction to open Storage based on given configuration
+    """
+
     @abstractmethod
     def open(self, config) -> Storage:
         pass
 
 
 class Context:
+    """
+    Execution context of application
+    """
+
     def __init__(self,
                  config,
                  logger: logging.Logger,

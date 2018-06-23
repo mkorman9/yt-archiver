@@ -72,6 +72,7 @@ def download_livestream(livestream: ContentItem, logger: logging.Logger):
     :param livestream: livestream to record
     :param logger: logger to write error messages to
     :exception DownloadError
+    :exception LivestreamInterruptedError
     """
     try:
         url = YOUTUBE_URL_PREFIX + livestream.video_id

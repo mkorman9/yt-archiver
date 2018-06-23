@@ -14,6 +14,10 @@ from ytarchiver.sqlite import Sqlite3StorageManager
 
 
 def main():
+    """
+    Command line entry point
+    """
+
     config = parse_command_line()
     logger = create_logger()
     context = Context(
@@ -29,6 +33,12 @@ def main():
 
 
 def create_logger():
+    """
+    Creates application logger
+
+    :return: configured logger
+    """
+
     logging.basicConfig(level=logging.DEBUG, stream=sys.stderr, format='%(message)s')
     logging.getLogger('googleapiclient.discovery').setLevel(logging.ERROR)
     logging.getLogger('urllib3.connectionpool').setLevel(logging.ERROR)
@@ -37,7 +47,13 @@ def create_logger():
 
 
 def start_monitoring(context: Context):
-    ensure_dir_exist(context.config.output_dir, context.logger)
+    """
+    Starts monitoring given channels. Blocks.
+
+    :param context: execution context
+    """
+
+    _ensure_dir_exist(context.config.output_dir, context.logger)
     if len(context.config.channels_list) == 0:
         context.logger.error('channels list cannot be empty, use -m option to specify at least one channel id')
         sys.exit(1)
@@ -61,7 +77,7 @@ def _trigger_lookup(context, first_run=False):
     lookup(context, first_run)
 
 
-def ensure_dir_exist(path: str, logger: logging.Logger):
+def _ensure_dir_exist(path: str, logger: logging.Logger):
     try:
         os.makedirs(path)
     except OSError as e:

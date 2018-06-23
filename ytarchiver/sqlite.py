@@ -7,6 +7,10 @@ from ytarchiver.common import ContentItem, StorageManager, Storage
 
 
 class Sqlite3StorageManager(StorageManager):
+    """
+    Is able to open Sqlite3 storage
+    """
+
     @contextmanager
     def open(self, config) -> 'Sqlite3Storage':
         s = Sqlite3Storage(config.output_dir)
@@ -15,6 +19,10 @@ class Sqlite3StorageManager(StorageManager):
 
 
 class Sqlite3Storage(Storage):
+    """
+    Storage based on Sqlite3
+    """
+
     STORAGE_FILE = 'storage.sqlite'
 
     def __init__(self, output_directory: str):

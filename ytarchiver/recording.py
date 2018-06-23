@@ -9,11 +9,19 @@ from ytarchiver.download import download_livestream, download_video, DownloadErr
 
 
 class RecorderShutdownMessage:
+    """
+    Message send by recorder after its shutdown
+    """
+
     def __init__(self, recorder_to_shutdown: str):
         self.recorder_to_shutdown = recorder_to_shutdown
 
 
 class MultiprocessRecordersQueue:
+    """
+    Queue to communicate recorders running inside different processes
+    """
+
     def __init__(self):
         self._queue = Queue()
 
@@ -31,6 +39,10 @@ class MultiprocessRecordersQueue:
 
 
 class SynchronousVideoRecordersController(RecordersController):
+    """
+    Video recorder which runs on thread invoking it. Blocks.
+    """
+
     def __init__(self):
         pass
 
@@ -45,6 +57,10 @@ class SynchronousVideoRecordersController(RecordersController):
 
 
 class MultiprocessRecordersController(RecordersController, metaclass=ABCMeta):
+    """
+    Abstract recorder which is able to control multiple processes.
+    """
+
     def __init__(self):
         self.active_recordings = {}
         self.recorders_queue = MultiprocessRecordersQueue()
@@ -62,6 +78,10 @@ class MultiprocessRecordersController(RecordersController, metaclass=ABCMeta):
 
 
 class MultiprocessLivestreamRecordersController(MultiprocessRecordersController):
+    """
+    Livestreams recorder which starts new worker process every time it is invoked.
+    """
+
     def __init__(self):
         super(MultiprocessLivestreamRecordersController, self).__init__()
 
