@@ -5,7 +5,7 @@ from unittest import TestCase
 from mock import MagicMock, create_autospec, call
 
 from ytarchiver.api import YoutubeAPI, YoutubeChannel
-from ytarchiver.common import Context, RecordersController, StorageManager, ContentItem
+from ytarchiver.common import Context, RecordersController, StorageManager, ContentItem, EventBus, Event, PluginsManager
 from ytarchiver.lookup import lookup
 
 
@@ -60,6 +60,8 @@ class LookupTest(TestCase):
         storage.add_livestream.assert_not_called()
         context.livestream_recorders.start_recording.assert_not_called()
         context.video_recorders.start_recording.assert_not_called()
+        context.bus.add_event.assert_not_called()
+        context.bus.retrieve_events.assert_called_once()
         storage.commit.assert_called()
 
     def test_should_search_for_all_content_and_save_results_and_start_recording_livestream(self):
@@ -93,6 +95,10 @@ class LookupTest(TestCase):
             call(context, context.api.fetch_channel_livestream.return_value)
         ], any_order=True)
         context.video_recorders.start_recording.assert_not_called()
+        context.bus.add_event.assert_has_calls([
+            call(Event(type=Event.LIVESTREAM_STARTED, content=context.api.fetch_channel_livestream.return_value))
+        ], any_order=True)
+        context.bus.retrieve_events.assert_called_once()
         storage.commit.assert_called()
 
     def test_should_search_for_videos_and_archive_all(self):
@@ -124,6 +130,11 @@ class LookupTest(TestCase):
             call(context, context.api.find_channel_uploaded_videos.return_value[1])
         ], any_order=True)
         context.livestream_recorders.start_recording.assert_not_called()
+        context.bus.add_event.assert_has_calls([
+            call(Event(type=Event.NEW_VIDEO, content=context.api.find_channel_uploaded_videos.return_value[0])),
+            call(Event(type=Event.NEW_VIDEO, content=context.api.find_channel_uploaded_videos.return_value[1]))
+        ], any_order=True)
+        context.bus.retrieve_events.assert_called_once()
         storage.commit.assert_called()
 
     def test_should_download_newly_fetched_videos(self):
@@ -155,6 +166,11 @@ class LookupTest(TestCase):
             call(context, context.api.find_channel_uploaded_videos.return_value[1])
         ], any_order=True)
         context.livestream_recorders.start_recording.assert_not_called()
+        context.bus.add_event.assert_has_calls([
+            call(Event(type=Event.NEW_VIDEO, content=context.api.find_channel_uploaded_videos.return_value[0])),
+            call(Event(type=Event.NEW_VIDEO, content=context.api.find_channel_uploaded_videos.return_value[1]))
+        ], any_order=True)
+        context.bus.retrieve_events.assert_called_once()
         storage.commit.assert_called()
 
     def test_should_not_download_if_video_already_exist(self):
@@ -180,6 +196,8 @@ class LookupTest(TestCase):
         storage.add_livestream.assert_not_called()
         context.video_recorders.start_recording.assert_not_called()
         context.livestream_recorders.start_recording.assert_not_called()
+        context.bus.add_event.assert_not_called()
+        context.bus.retrieve_events.assert_called_once()
         storage.commit.assert_called()
 
 
@@ -190,6 +208,8 @@ def _create_context_and_storage():
     api = create_autospec(YoutubeAPI, spec_set=True)
     video_recorders_controller = create_autospec(RecordersController, spec_set=True)
     livestream_recorders_controller = create_autospec(RecordersController, spec_set=True)
+    event_bus = create_autospec(EventBus, spec_set=True)
+    plugins_mananger = create_autospec(PluginsManager, spec_set=True)
 
     storage_manager = create_autospec(StorageManager, spec_set=True)
     storage_manager.open.return_value.__enter__.return_value = MagicMock()
@@ -201,6 +221,9 @@ def _create_context_and_storage():
         api=api,
         video_recorders_controller=video_recorders_controller,
         livestream_recorders_controller=livestream_recorders_controller,
-        storage_manager=storage_manager
+        storage_manager=storage_manager,
+        bus=event_bus,
+        plugins=plugins_mananger
     )
+
     return context, storage

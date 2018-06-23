@@ -8,6 +8,8 @@ with open('LICENSE.txt') as f:
     license = f.read()
 
 runtime_requirements = [
+    'requests==2.19.1',
+    'PyYAML==3.12',
     'pytube==9.2.2',
     'streamlink==0.12.1',
     'google-api-python-client==1.6.4'

@@ -7,8 +7,9 @@ from datetime import datetime
 
 from ytarchiver.api import YoutubeAPI
 from ytarchiver.args import parse_command_line
-from ytarchiver.common import Context
+from ytarchiver.common import Context, EventBus, PluginsManager
 from ytarchiver.lookup import lookup
+from ytarchiver.plugins import load_plugins_configuration
 from ytarchiver.recording import MultiprocessLivestreamRecordersController, SynchronousVideoRecordersController
 from ytarchiver.sqlite import Sqlite3StorageManager
 
@@ -26,8 +27,14 @@ def main():
         api=YoutubeAPI(config.api_key),
         video_recorders_controller=SynchronousVideoRecordersController(),
         livestream_recorders_controller=MultiprocessLivestreamRecordersController(),
-        storage_manager=Sqlite3StorageManager()
+        storage_manager=Sqlite3StorageManager(),
+        bus=EventBus(),
+        plugins=PluginsManager()
     )
+
+    if config.plugins_config_location is not None:
+        logger.info('loading plugins configuration from "{}"'.format(config.plugins_config_location))
+        load_plugins_configuration(config.plugins_config_location, context.plugins, logger)
 
     start_monitoring(context)
 

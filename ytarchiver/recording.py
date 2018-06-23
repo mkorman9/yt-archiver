@@ -4,7 +4,7 @@ from multiprocessing import Queue, Process
 from queue import Empty
 from typing import Iterator
 
-from ytarchiver.common import RecordersController, ContentItem, Context
+from ytarchiver.common import RecordersController, ContentItem, Context, Event
 from ytarchiver.download import download_livestream, download_video, DownloadError, LivestreamInterrupted
 
 
@@ -54,6 +54,7 @@ class SynchronousVideoRecordersController(RecordersController):
 
     def start_recording(self, context: Context, item: ContentItem):
         download_video(context, item)
+        context.bus.add_event(Event(type=Event.VIDEO_DOWNLOADED, content=item))
 
 
 class MultiprocessRecordersController(RecordersController, metaclass=ABCMeta):
@@ -67,10 +68,14 @@ class MultiprocessRecordersController(RecordersController, metaclass=ABCMeta):
 
     def update(self, context: Context):
         for message in self.recorders_queue.check_for_messages():
+            self.recording_stopped(context, self.active_recordings[message.recorder_to_shutdown])
             del self.active_recordings[message.recorder_to_shutdown]
 
     def is_recording_active(self, recording_id: str) -> bool:
         return recording_id in self.active_recordings
+
+    def recording_stopped(self, context: Context, item: ContentItem):
+        pass
 
     @abstractmethod
     def start_recording(self, context: Context, item: ContentItem):
@@ -85,8 +90,11 @@ class MultiprocessLivestreamRecordersController(MultiprocessRecordersController)
     def __init__(self):
         super(MultiprocessLivestreamRecordersController, self).__init__()
 
+    def recording_stopped(self, context: Context, item: ContentItem):
+        context.bus.add_event(Event(type=Event.LIVESTREAM_INTERRUPTED, content=item))
+
     def start_recording(self, context: Context, item: ContentItem):
-        self.active_recordings[item.video_id] = True  # replace boolean with any other information about recording
+        self.active_recordings[item.video_id] = item
 
         process = Process(
             name='ytarchiver-livestream-recorder',

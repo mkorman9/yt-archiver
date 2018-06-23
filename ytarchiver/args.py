@@ -56,6 +56,12 @@ def parse_command_line():
         help='logging level (one of debug, info or error), default is debug',
         default='debug'
     )
+    parser.add_argument(
+        '-p', '--plugins',
+        dest='plugins_config_location',
+        help='path to plugins configuration file',
+        default=None
+    )
 
     config = parser.parse_args()
     return config

@@ -1,7 +1,7 @@
 import logging
 
 from ytarchiver.api import YoutubeChannel, APIError
-from ytarchiver.common import Context
+from ytarchiver.common import Context, Event
 from ytarchiver.download import generate_livestream_filename, generate_video_filename, DownloadError, \
     LivestreamInterrupted
 from ytarchiver.sqlite import Sqlite3Storage
@@ -32,6 +32,7 @@ def lookup(context: Context, is_first_run: bool):
             context.logger.exception('unknown error')
 
     statistics.announce(context.logger)
+    _process_events(context, is_first_run)
 
 
 def _fetch_channel_content(
@@ -52,6 +53,7 @@ def _check_for_livestreams(context: Context, channel: YoutubeChannel, statistics
         if not context.livestream_recorders.is_recording_active(livestream.video_id):
             context.logger.info('new livestream "{}"'.format(livestream.title))
             livestream.filename = generate_livestream_filename(context.config.output_dir, livestream)
+            context.bus.add_event(Event(type=Event.LIVESTREAM_STARTED, content=livestream))
             context.livestream_recorders.start_recording(context, livestream)
             storage.add_livestream(livestream)
         statistics.notify_active_livestream()
@@ -67,11 +69,20 @@ def _check_for_videos(context: Context,
                                not context.video_recorders.is_recording_active(video.video_id)
         if video_not_registered:
             context.logger.info('new video "{}"'.format(video.title))
+            context.bus.add_event(Event(type=Event.NEW_VIDEO, content=video))
             if not is_first_run or context.config.archive_all:
                 video.filename = generate_video_filename(context.config.output_dir, video)
                 context.video_recorders.start_recording(context, video)
             storage.add_video(video)
         statistics.notify_video(new=video_not_registered)
+
+
+def _process_events(context: Context, is_first_run: bool):
+    try:
+        for event in context.bus.retrieve_events():
+            context.plugins.on_event(event, is_first_run)
+    except Exception:
+        context.logger.exception('exception in plugin')
 
 
 class _Statistics:
