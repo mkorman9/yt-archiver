@@ -5,7 +5,7 @@ from queue import Empty
 from typing import Iterator
 
 from ytarchiver.common import RecordersController, ContentItem, Context
-from ytarchiver.download import download_livestream, download_video, DownloadError, LivestreamInterruptedError
+from ytarchiver.download import download_livestream, download_video, DownloadError, LivestreamInterrupted
 
 
 class RecorderShutdownMessage:
@@ -101,8 +101,8 @@ def _livestream_recorder_task(item: ContentItem, recorders_queue: MultiprocessRe
         download_livestream(item, logger)
     except DownloadError:
         logger.exception('error while recording livestream')
-    except LivestreamInterruptedError:
-        logger.exception('livestream finished unexpectedly')
+    except LivestreamInterrupted as e:
+        logger.error('livestream "{}" finished unexpectedly'.format(e.livestream_title))
     finally:
         logger.error('recording of stream "{}" has ended'.format(item.title))
         recorders_queue.send_message(

@@ -3,7 +3,7 @@ import logging
 from ytarchiver.api import YoutubeChannel, APIError
 from ytarchiver.common import Context
 from ytarchiver.download import generate_livestream_filename, generate_video_filename, DownloadError, \
-    LivestreamInterruptedError
+    LivestreamInterrupted
 from ytarchiver.sqlite import Sqlite3Storage
 
 
@@ -26,8 +26,8 @@ def lookup(context: Context, is_first_run: bool):
             context.logger.exception('error while making API call')
         except DownloadError:
             context.logger.exception('error while downloading')
-        except LivestreamInterruptedError:
-            context.logger.exception('livestream finished unexpectedly')
+        except LivestreamInterrupted as e:
+            context.logger.error('livestream "{}" finished unexpectedly'.format(e.livestream_title))
         except Exception:
             context.logger.exception('unknown error')
 

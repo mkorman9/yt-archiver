@@ -22,15 +22,17 @@ class DownloadError(Exception):
 
     def __init__(self, title, cause):
         super(DownloadError, self).__init__(title, cause)
+        self.video_title = title
 
 
-class LivestreamInterruptedError(Exception):
+class LivestreamInterrupted(Exception):
     """
     Error caused when livestream is interrupted unexpectedly
     """
 
     def __init__(self, title, cause):
-        super(LivestreamInterruptedError, self).__init__(title, cause)
+        super(LivestreamInterrupted, self).__init__(title, cause)
+        self.livestream_title = title
 
 
 def download_video(context: Context, video: ContentItem):
@@ -93,7 +95,7 @@ def download_livestream(livestream: ContentItem, logger: logging.Logger):
                     out.flush()
                     time.sleep(0)
     except (IOError, EOFError) as e:
-        raise LivestreamInterruptedError(livestream.title, e)
+        raise LivestreamInterrupted(livestream.title, e)
     except Exception as e:
         raise DownloadError(livestream.title, e)
 
