@@ -44,11 +44,17 @@ def parse_command_line():
         type=str
     )
     parser.add_argument(
-        '-m', '--monitor',
+        '-c', '--channels',
         dest='channels_list',
         help='list of channels to monitor, use channel IDs split by space such as: UC8e8Ag9Or9ra4J6jl4qjfEg ...',
         nargs='+',
         default=[]
+    )
+    parser.add_argument(
+        '-l', '--level',
+        dest='logging_level',
+        help='logging level (one of debug, info or error), default is debug',
+        default='debug'
     )
 
     config = parser.parse_args()

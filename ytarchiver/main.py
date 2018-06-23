@@ -19,7 +19,7 @@ def main():
     """
 
     config = parse_command_line()
-    logger = create_logger()
+    logger = create_logger(config)
     context = Context(
         config,
         logger,
@@ -32,14 +32,24 @@ def main():
     start_monitoring(context)
 
 
-def create_logger():
+def create_logger(config):
     """
     Creates application logger
 
+    :param config: configuration
     :return: configured logger
     """
 
-    logging.basicConfig(level=logging.DEBUG, stream=sys.stderr, format='%(message)s')
+    desired_level = config.logging_level.lower()
+    level = logging.DEBUG
+    if desired_level == 'debug':
+        level = logging.DEBUG
+    elif desired_level == 'info':
+        level = logging.INFO
+    elif desired_level == 'error':
+        level = logging.ERROR
+
+    logging.basicConfig(level=level, stream=sys.stderr, format='%(message)s')
     logging.getLogger('googleapiclient.discovery').setLevel(logging.ERROR)
     logging.getLogger('urllib3.connectionpool').setLevel(logging.ERROR)
     logger = logging.getLogger('ytarchiver')
