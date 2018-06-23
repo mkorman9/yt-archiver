@@ -65,7 +65,7 @@ def start_monitoring(context: Context):
 
     _ensure_dir_exist(context.config.output_dir, context.logger)
     if len(context.config.channels_list) == 0:
-        context.logger.error('channels list cannot be empty, use -m option to specify at least one channel id')
+        context.logger.error('channels list cannot be empty, use -c option to specify at least one channel id')
         sys.exit(1)
 
     context.logger.debug('daemon started successfully')
