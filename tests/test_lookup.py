@@ -60,7 +60,10 @@ class LookupTest(TestCase):
         storage.add_livestream.assert_not_called()
         context.livestream_recorders.start_recording.assert_not_called()
         context.video_recorders.start_recording.assert_not_called()
-        context.bus.add_event.assert_not_called()
+        context.bus.add_event.assert_has_calls([
+            call(Event(type=Event.NEW_VIDEO, content=context.api.find_channel_uploaded_videos.return_value[0])),
+            call(Event(type=Event.NEW_VIDEO, content=context.api.find_channel_uploaded_videos.return_value[1]))
+        ], any_order=True)
         context.bus.retrieve_events.assert_called_once()
         storage.commit.assert_called()
 
